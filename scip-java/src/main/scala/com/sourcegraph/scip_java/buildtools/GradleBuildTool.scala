@@ -71,7 +71,7 @@ class GradleBuildTool(index: IndexCommand) extends BuildTool("Gradle", index) {
     buildCommand += s"-Dsemanticdb.targetroot=$targetroot"
     buildCommand ++=
       index.finalBuildCommand(
-        List("clean", "scipPrintDependencies", "scipCompileAll")
+        List("scipPrintDependencies", "scipCompileAll")
       )
 
     Files.walkFileTree(targetroot, new DeleteVisitor())
@@ -106,7 +106,7 @@ class GradleBuildTool(index: IndexCommand) extends BuildTool("Gradle", index) {
     val script =
       s"""
          | initscript {
-         |     dependencies{ 
+         |     dependencies{
          |         classpath(files("${gradlePluginPath}"))
          |     }
          | }
