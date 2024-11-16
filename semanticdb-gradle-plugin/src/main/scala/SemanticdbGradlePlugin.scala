@@ -26,10 +26,12 @@ class SemanticdbGradlePlugin extends Plugin[Project] {
 
   override def apply(project: Project): Unit = {
     val gradle = new GradleVersion(project.getGradle().getGradleVersion())
-    project.afterEvaluate { project =>
-      project.getRepositories().add(project.getRepositories().mavenCentral())
-      project.getRepositories().add(project.getRepositories().mavenLocal())
-
+    project.afterEvaluate { p =>
+      // Make sure we run ths after all other afterEvalute blocks
+      // This way if some plugin adds dependencies to configurations afterEvaluate,
+      // we pick this up.
+      // This is what happens with Gradle's playframework-application plugin.
+      p.afterEvaluate { project =>
       val extra = project.getExtensions().getExtraProperties()
       val extraProperties = extra.getProperties().asScala
 
@@ -387,6 +389,7 @@ class SemanticdbGradlePlugin extends Plugin[Project] {
       tasks.create("scipPrintDependencies", classOf[WriteDependencies])
 
     }
+    }
 
   }
 
@@ -448,7 +451,7 @@ class WriteDependencies extends DefaultTask {
 
     val crossRepoBanner =
       """
-      |This will not prevent a SCIP index from being created, but the symbols 
+      |This will not prevent a SCIP index from being created, but the symbols
       |extracted from this project won't be available for cross-repository navigation,
       |as this project doesn't define any Maven coordinates by which it can be referred back to.
       |See here for more details: https://sourcegraph.github.io/scip-java/docs/manual-configuration.html#step-5-optional-enable-cross-repository-navigation
@@ -464,7 +467,7 @@ class WriteDependencies extends DefaultTask {
     ) match {
       case Failure(exception) =>
         warn(s"""
-                |Failed to extract Maven publication from the project `$projectName`. 
+                |Failed to extract Maven publication from the project `$projectName`.
                 $crossRepoBanner
                 |Here's the raw error message (${exception.getClass()}):
                 |  "${exception.getMessage()}"
@@ -487,7 +490,7 @@ class WriteDependencies extends DefaultTask {
               ).mkString(":")
 
               warn(s"""
-                      |Failed to extract `main` source set from publication `${publicationName}` in project `$projectName``. 
+                      |Failed to extract `main` source set from publication `${publicationName}` in project `$projectName``.
                             $crossRepoBanner
                       |Here's the raw error message:
                       |  "${exception.getMessage()}"
@@ -509,7 +512,10 @@ class WriteDependencies extends DefaultTask {
                     List(
                       publication.getGroupId(),
                       publication.getArtifactId(),
-                      publication.getVersion(),
+                      if (publication.getGroupId() != s"com.linkedin.${sys.env("MP_NAME")}")
+                        publication.getVersion()
+                      else
+                        sys.env("MP_VERSION"),
                       classesDirectory
                     ).mkString("\t")
                 }
@@ -537,7 +543,10 @@ class WriteDependencies extends DefaultTask {
                   List(
                     artif.getModuleVersion().getId().getGroup(),
                     artif.getModuleVersion().getId().getName(),
-                    artif.getModuleVersion().getId().getVersion(),
+                    if (artif.getModuleVersion().getId().getGroup() != s"com.linkedin.${sys.env("MP_NAME")}")
+                      artif.getModuleVersion().getId().getVersion()
+                    else
+                      sys.env("MP_VERSION"),
                     artif.getFile().getAbsolutePath()
                   ).mkString("\t")
 
