@@ -3,6 +3,7 @@ package org.scip_code.scip_java.kotlinc.test
 import com.tschuchort.compiletesting.SourceFile
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.junit.jupiter.api.TestFactory
+import org.scip_code.scip.SymbolInformation.Kind
 import org.scip_code.scip_java.kotlinc.*
 import org.scip_code.scip_java.kotlinc.test.ExpectedSymbols.ScipData
 import org.scip_code.scip_java.kotlinc.test.ExpectedSymbols.SymbolCacheData
@@ -275,7 +276,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "getX()."
+                                        symbol = "x.get()."
                                         range {
                                             startLine = 0
                                             startCharacter = 4
@@ -286,7 +287,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "setX()."
+                                        symbol = "x.set()."
                                         range {
                                             startLine = 0
                                             startCharacter = 4
@@ -327,7 +328,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "setX()."
+                                        symbol = "x.set()."
                                         range {
                                             startLine = 0
                                             startCharacter = 4
@@ -341,7 +342,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "getX()."
+                                        symbol = "x.get()."
                                         range {
                                             startLine = 1
                                             startCharacter = 4
@@ -387,7 +388,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "getX()."
+                                        symbol = "x.get()."
                                         range {
                                             startLine = 0
                                             startCharacter = 4
@@ -401,7 +402,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "setX()."
+                                        symbol = "x.set()."
                                         range {
                                             startLine = 1
                                             startCharacter = 4
@@ -448,7 +449,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "getX()."
+                                        symbol = "x.get()."
                                         range {
                                             startLine = 1
                                             startCharacter = 4
@@ -464,7 +465,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "setX()."
+                                        symbol = "x.set()."
                                         range {
                                             startLine = 2
                                             startCharacter = 4
@@ -527,7 +528,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "Test#getSample()."
+                                        symbol = "Test#sample.get()."
                                         range {
                                             startLine = 0
                                             startCharacter = 15
@@ -541,7 +542,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = DEFINITION
-                                        symbol = "Test#setSample()."
+                                        symbol = "Test#sample.set()."
                                         range {
                                             startLine = 0
                                             startCharacter = 15
@@ -575,7 +576,7 @@ class ScipSymbolsTest {
                                     },
                                     scipOccurrence {
                                         role = REFERENCE
-                                        symbol = "Test#getSample()."
+                                        symbol = "Test#sample.get()."
                                         range {
                                             startLine = 2
                                             startCharacter = 16
@@ -775,12 +776,16 @@ class ScipSymbolsTest {
                                 listOf(
                                     scipSymbol {
                                         symbol = "x."
+                                        kind = Kind.Property
+                                        enclosingSymbol = "_root_/"
                                         displayName = "x"
                                         signatureText = "public final val x: String"
                                         documentation("hello world\n test content")
                                     },
                                     scipSymbol {
-                                        symbol = "getX()."
+                                        symbol = "x.get()."
+                                        kind = Kind.Method
+                                        enclosingSymbol = "x."
                                         displayName = "x"
                                         signatureText = "public get(): String"
                                         documentation("hello world\n test content")

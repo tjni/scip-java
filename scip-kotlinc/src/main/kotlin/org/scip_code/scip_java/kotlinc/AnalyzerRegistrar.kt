@@ -19,12 +19,15 @@ class AnalyzerRegistrar(private val callback: (Document) -> Unit = {}) : Compile
         FirExtensionRegistrarAdapter.registerExtension(AnalyzerFirExtensionRegistrar(options))
         IrGenerationExtension.registerExtension(
             PostAnalysisExtension(
+                configuration = configuration,
                 sourceRoot = options.sourceroot,
                 targetRoot = options.targetroot,
                 callback = callback,
             )
         )
     }
+
+    override val pluginId = PLUGIN_ID
 
     override val supportsK2: Boolean
         get() = true

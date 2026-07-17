@@ -5,10 +5,13 @@ import java.nio.file.Paths
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.KtSourceFile
 import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.FirPackageDirective
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.directOverriddenSymbolsSafe
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.analysis.getChild
+import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.declarations.utils.isInterface
 import org.jetbrains.kotlin.fir.renderer.*
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -19,6 +22,7 @@ import org.jetbrains.kotlin.text
 import org.scip_code.scip.Document
 import org.scip_code.scip.Occurrence
 import org.scip_code.scip.SymbolInformation
+import org.scip_code.scip.SymbolInformation.Kind
 import org.scip_code.scip.SymbolRole
 import org.scip_code.scip.relationship
 import org.scip_code.scip.signature
@@ -39,26 +43,26 @@ class ScipTextDocumentBuilder(
 
     fun build(): Document = documentBuilder.build("kotlin", relativePath(), fileText)
 
+    context(context: CheckerContext)
     fun emitScipData(
         firBasedSymbol: FirBasedSymbol<*>?,
         symbol: Symbol,
         element: KtSourceElement,
         isDefinition: Boolean,
-        context: CheckerContext,
         enclosingSource: KtSourceElement? = null,
     ) {
         documentBuilder.addOccurrence(occurrence(symbol, element, isDefinition, enclosingSource))
         if (isDefinition) {
-            documentBuilder.addSymbol(symbolInformation(firBasedSymbol, symbol, element, context))
+            documentBuilder.addSymbol(symbolInformation(firBasedSymbol, symbol, element))
         }
     }
 
     @OptIn(SymbolInternals::class)
+    context(context: CheckerContext)
     private fun symbolInformation(
         firBasedSymbol: FirBasedSymbol<*>?,
         symbol: Symbol,
         element: KtSourceElement,
-        context: CheckerContext,
     ): SymbolInformation {
         val supers =
             when (firBasedSymbol) {
@@ -68,7 +72,7 @@ class ScipTextDocumentBuilder(
                         .mapNotNull { it.toClassLikeSymbol(firBasedSymbol.moduleData.session) }
                         .flatMap { cache[it] }
                 is FirFunctionSymbol<*> ->
-                    firBasedSymbol.directOverriddenSymbolsSafe(context).flatMap { cache[it] }
+                    firBasedSymbol.directOverriddenSymbolsSafe().flatMap { cache[it] }
                 else -> emptyList()
             }
         return symbolInformation {
@@ -84,6 +88,10 @@ class ScipTextDocumentBuilder(
                 }
                 docComment(firBasedSymbol.fir)?.let { documentation += it }
             }
+            this.kind = scipKind(firBasedSymbol?.fir)
+            this.enclosingSymbol =
+                context.containingDeclarations.lastOrNull()?.let { cache[it].last().toString() }
+                    ?: ""
             for (parent in supers) {
                 relationships += relationship {
                     this.symbol = parent.toString()
@@ -146,7 +154,7 @@ class ScipTextDocumentBuilder(
                 bodyRenderer = null,
                 propertyAccessorRenderer = null,
                 callArgumentsRenderer = FirCallNoArgumentsRenderer(),
-                modifierRenderer = FirAllModifierRenderer(),
+                modifierRenderer = FirAllModifierRenderer(FirModifierRenderer.StaticPolicy.Default),
                 callableSignatureRenderer = FirCallableSignatureRendererForReadability(),
                 declarationRenderer = FirDeclarationRenderer("local "),
             )
@@ -158,6 +166,23 @@ class ScipTextDocumentBuilder(
         val kdoc = element.source?.getChild(KtTokens.DOC_COMMENT)?.text?.toString() ?: return null
         return stripKdoc(kdoc).ifEmpty { null }
     }
+
+    private fun scipKind(element: FirElement?): Kind =
+        when (element) {
+            is FirClass if element.isInterface -> Kind.Interface
+            is FirTypeAlias -> Kind.TypeAlias
+            is FirClassLikeDeclaration -> Kind.Class
+            is FirConstructor -> Kind.Constructor
+            is FirTypeParameter -> Kind.TypeParameter
+            is FirValueParameter -> Kind.Parameter
+            is FirField -> Kind.Field
+            is FirProperty -> Kind.Property
+            is FirEnumEntry -> Kind.EnumMember
+            is FirVariable -> Kind.Variable
+            is FirCallableDeclaration -> Kind.Method
+            is FirPackageDirective -> Kind.Package
+            else -> Kind.UNRECOGNIZED
+        }
 
     /** Strips the `/**`, leading `*`s, and `*/` from a kdoc block, returning just the body text. */
     private fun stripKdoc(kdoc: String): String {
@@ -184,14 +209,16 @@ class ScipTextDocumentBuilder(
     }
 
     companion object {
-        @OptIn(SymbolInternals::class)
+        @OptIn(SymbolInternals::class, RenderingInternals::class)
         private fun displayName(firBasedSymbol: FirBasedSymbol<*>): String =
             when (firBasedSymbol) {
-                is FirClassSymbol -> firBasedSymbol.classId.shortClassName.asString()
+                is FirClassLikeSymbol -> firBasedSymbol.classId.shortClassName.asString()
                 is FirPropertyAccessorSymbol -> firBasedSymbol.fir.propertySymbol.name.asString()
                 is FirFunctionSymbol -> firBasedSymbol.callableId.callableName.asString()
-                is FirPropertySymbol -> firBasedSymbol.callableId.callableName.asString()
+                is FirPropertySymbol ->
+                    firBasedSymbol.callableIdForRendering.callableName.asString()
                 is FirVariableSymbol -> firBasedSymbol.name.asString()
+                is FirTypeParameterSymbol -> firBasedSymbol.name.asString()
                 else -> firBasedSymbol.toString()
             }
     }

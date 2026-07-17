@@ -193,12 +193,15 @@ fun scipVisitorAnalyzer(
             )
             IrGenerationExtension.registerExtension(
                 PostAnalysisExtension(
+                    configuration = configuration,
                     sourceRoot = sourceroot,
                     targetRoot = Paths.get(""),
                     callback = hook,
                 )
             )
         }
+
+        override val pluginId = PLUGIN_ID
 
         override val supportsK2: Boolean
             get() = true
